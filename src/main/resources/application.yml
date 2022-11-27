@@ -1,0 +1,21 @@
+server:
+  port: 8085
+spring:
+  datasource:
+    hikari:
+      connectionTimeout: 20000
+      idle-timeout: 300000
+      maximum-pool-size: 50
+      connection-test-query: select 1;
+      maximumPoolSize: 5
+    url: jdbc:postgresql://14.225.192.7:5431/postgres
+    username: postgres
+    password: 12345678Aa9
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    defer-datasource-initialization: true
