@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -77,7 +79,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public Group addMember(AddMemberRequestDto request) throws Exception {
+    public Group initMember(AddMemberRequestDto request) throws Exception {
         try {
             // Validate group
             Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> {
@@ -85,7 +87,7 @@ public class GroupServiceImpl implements GroupService {
             });
 
             // Validate user
-            Set<User> members = group.getGroupUsers();
+            Set<User> members = group.getMembers();
             UserDto user = userService.findById(request.getUserId()).orElseThrow(() -> {
                 throw new UserNotFoundException("User not found!!!");
             });
@@ -104,5 +106,54 @@ public class GroupServiceImpl implements GroupService {
             LOGGER.error("Exception GroupServiceImpl>addMember. Error: {}", ex.getMessage(), ex);
             throw new Exception(ex.getMessage());
         }
+    }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<User> getMembersByGroupId(long groupId) {
+        Group group = groupRepository.findById(groupId).orElseThrow(() -> {
+            throw new GroupNotFoundException("Group not found!!!");
+        });
+
+        return new ArrayList<>(group.getMembers());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public List<User> addMember(AddMemberRequestDto request) throws Exception {
+        // Validate group
+        Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> {
+            throw new GroupNotFoundException("Group not found!!!");
+        });
+
+        // If user is exist in db
+        Set<User> members = group.getMembers();
+        Optional<UserDto> optUser = userService.findByEmail(request.getEmail());
+        Group responseGroup = new Group();
+        ModelMapper modelMapper = new ModelMapper();
+        if (optUser.isPresent() && optUser.get().getUserId() > 0) {
+            // Add member
+            modelMapper = new ModelMapper();
+            boolean isExist = members.stream().anyMatch(member -> member.getUserId().equals(optUser.get().getUserId()));
+            if (!isExist) {
+                members.add(modelMapper.map(optUser.get(), User.class));
+                responseGroup = groupRepository.save(group);
+            }
+        } else {
+            String encodePass = "abcdef".concat("123456").concat("abcdef");
+            User user = User.builder()
+                    .email(request.getEmail())
+                    .username(request.getUsername())
+                    .password(encodePass)
+                    .build();
+            UserDto savedUser = userService.save(modelMapper.map(user, UserDto.class));
+            if (!ObjectUtils.isEmpty(savedUser) && savedUser.getUserId() > 0) {
+                members.add(modelMapper.map(savedUser, User.class));
+                responseGroup = groupRepository.save(group);
+            }
+        }
+
+        return new ArrayList<>(responseGroup.getMembers());
     }
 }

@@ -34,4 +34,17 @@ public class GroupController {
         return new ResponseEntity<>(groupService.addMember(requestAddMember), HttpStatus.OK);
     }
 
+    @CrossOrigin(origins = "*")
+    @PostMapping("/init-members")
+    public ResponseEntity<?> initCreateGroup(@RequestBody AddMemberRequestDto requestAddMember) throws Exception {
+        LOGGER.info("----------------------- function initCreateGroup() HERE -----------------------");
+        return new ResponseEntity<>(groupService.initMember(requestAddMember), HttpStatus.OK);
+    }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<?> getMembersByGroupId(@PathVariable("groupId") Long groupId) throws Exception {
+        LOGGER.info("----------------------- function addMember() HERE -----------------------");
+        return new ResponseEntity<>(groupService.getMembersByGroupId(groupId), HttpStatus.OK);
+    }
 }

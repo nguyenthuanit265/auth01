@@ -12,4 +12,7 @@ import lombok.Setter;
 public class AddMemberRequestDto {
     private long groupId;
     private long userId;
+    private String username;
+    private String email;
+    private String password;
 }

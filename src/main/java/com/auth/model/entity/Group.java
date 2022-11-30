@@ -34,5 +34,5 @@ public class Group extends BaseEntity {
     @JoinTable(name = "groups_users",
             joinColumns = @JoinColumn(name = "groupId", referencedColumnName = "groupId"),
             inverseJoinColumns = @JoinColumn(name = "userId", referencedColumnName = "userId"))
-    private Set<User> groupUsers;
+    private Set<User> members;
 }

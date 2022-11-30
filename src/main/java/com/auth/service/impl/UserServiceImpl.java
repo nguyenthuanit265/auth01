@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("Email is not acceptable !!!");
             }
             if (userDto.getPassword().isEmpty()) {
-                throw new IllegalArgumentException("Email is not acceptable !!!");
+                throw new IllegalArgumentException("Password is not acceptable !!!");
             }
 
             User entity = modelMapper.map(userDto, User.class);
@@ -103,16 +103,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getProfile(long userId) {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication();
-        if (!ObjectUtils.isEmpty(userDetails)) {
-            return modelMapper.map(userRepository.findByEmail(userDetails.getUsername()), UserDto.class);
-        } else {
-            Optional<User> optionalUser = userRepository.findById(userId);
-            if (optionalUser.isEmpty()) {
-                return null;
-            }
-            return modelMapper.map(optionalUser.get(), UserDto.class);
+//        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication();
+//        if (!ObjectUtils.isEmpty(userDetails)) {
+//            return modelMapper.map(userRepository.findByEmail(userDetails.getUsername()), UserDto.class);
+//        } else {
+//            Optional<User> optionalUser = userRepository.findById(userId);
+//            if (optionalUser.isEmpty()) {
+//                return null;
+//            }
+//            return modelMapper.map(optionalUser.get(), UserDto.class);
+//        }
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return null;
         }
+        return modelMapper.map(optionalUser.get(), UserDto.class);
     }
 
     @Transactional(readOnly = true)

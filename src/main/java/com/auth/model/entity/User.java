@@ -33,7 +33,7 @@ public class User extends BaseEntity {
     private String password;
 
     @JsonIgnore
-    @ManyToMany(mappedBy = "groupUsers")
+    @ManyToMany(mappedBy = "members", fetch = FetchType.LAZY)
     private Set<Group> groups;
 
 }
