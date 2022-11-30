@@ -8,9 +8,9 @@ spring:
       maximum-pool-size: 50
       connection-test-query: select 1;
       maximumPoolSize: 5
-    url: jdbc:postgresql://14.225.192.7:5431/postgres
-    username: postgres
-    password: 12345678Aa9
+    url: 
+    username: 
+    password: 
   jpa:
     properties:
       hibernate:

@@ -3,6 +3,8 @@ package com.auth.service.impl;
 import com.auth.exception.GroupNotFoundException;
 import com.auth.exception.UserNotFoundException;
 import com.auth.model.dto.AddMemberRequestDto;
+import com.auth.model.dto.RequestDeleteGroupDto;
+import com.auth.model.dto.RequestDeleteMemberDto;
 import com.auth.model.dto.UserDto;
 import com.auth.model.entity.Group;
 import com.auth.model.entity.User;
@@ -12,14 +14,15 @@ import com.auth.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -67,9 +70,31 @@ public class GroupServiceImpl implements GroupService {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public int deleteById(long id) {
-        return 0;
+    public int deleteById(long id) throws Exception {
+        try {
+            if (id > 0) {
+                groupRepository.deleteById(id);
+                return 1;
+            }
+            return 0;
+        } catch (Exception ex) {
+            LOGGER.error("Exception GroupServiceImpl>deleteById. Error: {}", ex.getMessage(), ex);
+            throw new Exception(ex.getMessage());
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public ResponseEntity<?> deleteById(RequestDeleteGroupDto request) throws Exception {
+        Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> {
+            throw new GroupNotFoundException("Group not found!!!");
+        });
+        if (group.getAdminId() != 0 && group.getAdminId() != request.getDeletedBy()) {
+            return new ResponseEntity<>("User is not admin of group!!!", HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(deleteById(request.getGroupId()), HttpStatus.OK);
     }
 
     @Override
@@ -116,7 +141,9 @@ public class GroupServiceImpl implements GroupService {
             throw new GroupNotFoundException("Group not found!!!");
         });
 
-        return new ArrayList<>(group.getMembers());
+        Comparator<User> comparatorUserId = Comparator.comparing(User::getUserId);
+        List<User> members = group.getMembers().stream().sorted(comparatorUserId).collect(Collectors.toList());
+        return members;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -156,4 +183,34 @@ public class GroupServiceImpl implements GroupService {
 
         return new ArrayList<>(responseGroup.getMembers());
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public ResponseEntity<?> deleteMemberOfGroup(RequestDeleteMemberDto request) {
+        // Check group is exist
+        Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> {
+            throw new GroupNotFoundException("Group not found!!!");
+        });
+
+        // Check permission user delete member
+        if (group.getAdminId() != 0 && group.getAdminId() != request.getDeletedBy()) {
+            return new ResponseEntity<>("User don't have permission delete member!!!", HttpStatus.BAD_REQUEST);
+        }
+
+        // Check member is deleted: member or admin of group
+        if (group.getAdminId() != 0 && group.getAdminId() == request.getDeletedBy() && request.getDeletedBy() == request.getMemberId()) {
+            return new ResponseEntity<>("Admin cannot delete yourself!!!", HttpStatus.BAD_REQUEST);
+        }
+
+        // Check member is exists in group
+        boolean isExist = group.getMembers().stream().anyMatch(member -> member.getUserId() == request.getMemberId());
+        if (isExist) {
+            group.getMembers().removeIf(member -> member.getUserId() == request.getMemberId());
+            return new ResponseEntity<>(group, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("User is not exists in group", HttpStatus.BAD_REQUEST);
+        }
+
+    }
+
 }
